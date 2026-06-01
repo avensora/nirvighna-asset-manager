@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('scheduled_expenses', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->decimal('amount', 10, 2);
+            $table->string('category')->nullable();
+            $table->date('due_date');
+            $table->string('recurrence')->default('none'); // none, monthly, quarterly, yearly
+            $table->text('notes')->nullable();
+            $table->string('status')->default('pending');  // pending, paid (one-time only)
+            $table->date('last_paid_at')->nullable();
+            $table->foreignId('created_by')->constrained('users');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('scheduled_expenses');
+    }
+};
