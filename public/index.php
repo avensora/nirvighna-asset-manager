@@ -5,16 +5,21 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Determine if the application is in maintenance mode...
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+// In dev: vendor/ sits one level above this file (nirvighna/vendor/).
+// On Hostinger: this file is copied to public_html/ while the app lives in
+// public_html/nirvighna/ — detect by checking if vendor/ exists at ../
+$basePath = is_dir(__DIR__.'/../vendor')
+    ? realpath(__DIR__.'/..')
+    : realpath(__DIR__.'/nirvighna');
+
+if (file_exists($maintenance = $basePath.'/storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-// Register the Composer autoloader...
-require __DIR__.'/../vendor/autoload.php';
+require $basePath.'/vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
 /** @var Application $app */
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$app = require_once $basePath.'/bootstrap/app.php';
 
 $app->handleRequest(Request::capture());
+
