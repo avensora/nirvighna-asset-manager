@@ -10,7 +10,7 @@ define('LARAVEL_START', microtime(true));
 // public_html/nirvighna/ — detect by checking if vendor/ exists at ../
 $basePath = is_dir(__DIR__.'/../vendor')
     ? realpath(__DIR__.'/..')
-    : realpath(__DIR__.'/nirvighna');
+    : realpath(__DIR__.'/../nirvighna');
 
 if (file_exists($maintenance = $basePath.'/storage/framework/maintenance.php')) {
     require $maintenance;
