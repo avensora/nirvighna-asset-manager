@@ -12,9 +12,10 @@
         <form method="GET" class="d-flex gap-2 align-items-center">
             <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="width:140px">
                 <option value="">All Statuses</option>
-                <option value="draft"  {{ request('status') === 'draft'  ? 'selected' : '' }}>Draft</option>
-                <option value="sent"   {{ request('status') === 'sent'   ? 'selected' : '' }}>Sent</option>
-                <option value="paid"   {{ request('status') === 'paid'   ? 'selected' : '' }}>Paid</option>
+                <option value="draft"   {{ request('status') === 'draft'   ? 'selected' : '' }}>Draft</option>
+                <option value="sent"    {{ request('status') === 'sent'    ? 'selected' : '' }}>Sent</option>
+                <option value="partial" {{ request('status') === 'partial' ? 'selected' : '' }}>Partial</option>
+                <option value="paid"    {{ request('status') === 'paid'    ? 'selected' : '' }}>Paid</option>
             </select>
         </form>
     </div>
@@ -35,6 +36,7 @@
                             <th>Issue Date</th>
                             <th>Due Date</th>
                             <th class="text-end">Total</th>
+                            <th class="text-end">Due</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -58,10 +60,20 @@
                             <td>{{ $invoice->due_date?->format('d M Y') ?? '—' }}</td>
                             <td class="text-end fw-semibold">{{ format_inr($invoice->total) }}</td>
                             <td class="text-end">
+                                @php $amountDue = max(0, (float)$invoice->total - (float)($invoice->payments_sum_amount ?? 0)); @endphp
+                                @if($invoice->status === \App\Enums\InvoiceStatus::Paid)
+                                    <span class="text-success"><i class="ti ti-circle-check"></i></span>
+                                @elseif($amountDue > 0)
+                                    <span class="fw-semibold {{ $invoice->isOverdue() ? 'text-danger' : 'text-warning' }}">{{ format_inr($amountDue) }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="text-end">
                                 <a href="{{ route('invoices.show', $invoice) }}" class="btn btn-sm btn-outline-secondary me-1">
                                     <i class="ti ti-eye"></i>
                                 </a>
-                                @if($invoice->status !== \App\Enums\InvoiceStatus::Paid)
+                                @if(!in_array($invoice->status, [\App\Enums\InvoiceStatus::Paid, \App\Enums\InvoiceStatus::Partial]))
                                 <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-sm btn-outline-primary me-1">
                                     <i class="ti ti-pencil"></i>
                                 </a>
@@ -69,7 +81,7 @@
                                 <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-sm btn-outline-info me-1" target="_blank">
                                     <i class="ti ti-file-download"></i>
                                 </a>
-                                @if($invoice->status !== \App\Enums\InvoiceStatus::Paid)
+                                @if(!in_array($invoice->status, [\App\Enums\InvoiceStatus::Paid, \App\Enums\InvoiceStatus::Partial]))
                                 <form action="{{ route('invoices.destroy', $invoice) }}" method="POST" class="d-inline"
                                       onsubmit="return confirm('Delete {{ $invoice->invoice_number }}?')">
                                     @csrf

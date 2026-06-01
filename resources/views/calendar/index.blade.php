@@ -3,8 +3,17 @@
 @section('content')
 
 <div class="row">
-    {{-- Left panel --}}
-    <div class="col-xl-3">
+    {{-- Calendar — first in HTML (mobile top), pushed right on desktop --}}
+    <div class="col-xl-9 order-xl-2 mb-3 mb-xl-0">
+        <div class="card">
+            <div class="card-body">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Legend panel — second in HTML (mobile bottom), pulled left on desktop --}}
+    <div class="col-xl-3 order-xl-1">
         <div class="card">
             <div class="card-body">
                 <button class="btn btn-primary w-100 mb-3" id="btn-new-event">
@@ -39,15 +48,6 @@
                         <span class="small">Invoice Due Date</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Calendar --}}
-    <div class="col-xl-9">
-        <div class="card">
-            <div class="card-body">
-                <div id="calendar"></div>
             </div>
         </div>
     </div>
@@ -233,14 +233,13 @@
     }
 
     // Init FullCalendar
-    const calEl = document.getElementById('calendar');
+    const calEl  = document.getElementById('calendar');
+    const isMob  = window.innerWidth < 576;
     calObj = new FullCalendar.Calendar(calEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left:   'prev,next today',
-            center: 'title',
-            right:  'dayGridMonth,timeGridWeek,timeGridDay,listMonth',
-        },
+        initialView: isMob ? 'listWeek' : 'dayGridMonth',
+        headerToolbar: isMob
+            ? { left: 'prev,next today', center: 'title', right: 'listWeek,dayGridMonth' }
+            : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth' },
         height: window.innerHeight - 220,
         handleWindowResize: true,
         selectable: true,

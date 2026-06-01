@@ -34,6 +34,31 @@
             <li class="side-nav-title mt-2">Business</li>
 
             <li class="side-nav-item">
+                <a href="{{ route('projects.index') }}" class="side-nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+                    <span class="menu-icon"><i class="ti ti-layout-kanban"></i></span>
+                    <span class="menu-text">Projects</span>
+                </a>
+            </li>
+
+            @if(auth()->user()->isManager())
+            <li class="side-nav-item">
+                <a href="{{ route('leads.index') }}" class="side-nav-link {{ request()->routeIs('leads.*') ? 'active' : '' }}">
+                    <span class="menu-icon"><i class="ti ti-target"></i></span>
+                    <span class="menu-text">Leads</span>
+                </a>
+            </li>
+            @endif
+
+            @if(auth()->user()->isManager())
+            <li class="side-nav-item">
+                <a href="{{ route('reports.index') }}" class="side-nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <span class="menu-icon"><i class="ti ti-chart-pie fs-18"></i></span>
+                    <span class="menu-text">Reports</span>
+                </a>
+            </li>
+            @endif
+
+            <li class="side-nav-item">
                 <a href="{{ route('clients.index') }}" class="side-nav-link {{ request()->routeIs('clients.*') ? 'active' : '' }}">
                     <span class="menu-icon"><i class="ti ti-users"></i></span>
                     <span class="menu-text">Clients</span>
@@ -64,12 +89,23 @@
 
             @if(auth()->user()->isManager())
             <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarFinance" aria-expanded="{{ request()->routeIs('transactions.*', 'scheduled-expenses.*') ? 'true' : 'false' }}" class="side-nav-link {{ request()->routeIs('transactions.*', 'scheduled-expenses.*') ? 'active' : '' }}">
+                <a href="{{ route('owes.index') }}" class="side-nav-link {{ request()->routeIs('owes.*') ? 'active' : '' }}">
+                    <span class="menu-icon"><i class="ti ti-arrows-exchange-2"></i></span>
+                    <span class="menu-text">Who Owes Whom</span>
+                </a>
+            </li>
+            @endif
+
+            @if(auth()->user()->isManager())
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" href="#sidebarFinance"
+                   aria-expanded="{{ request()->routeIs('transactions.*', 'scheduled-expenses.*', 'reimbursements.*', 'loans.*') ? 'true' : 'false' }}"
+                   class="side-nav-link {{ request()->routeIs('transactions.*', 'scheduled-expenses.*', 'reimbursements.*', 'loans.*') ? 'active' : '' }}">
                     <span class="menu-icon"><i class="ti ti-report-money"></i></span>
                     <span class="menu-text">Finances</span>
                     <span class="menu-arrow"></span>
                 </a>
-                <div class="collapse {{ request()->routeIs('transactions.*', 'scheduled-expenses.*') ? 'show' : '' }}" id="sidebarFinance">
+                <div class="collapse {{ request()->routeIs('transactions.*', 'scheduled-expenses.*', 'reimbursements.*', 'loans.*') ? 'show' : '' }}" id="sidebarFinance">
                     <ul class="sub-menu">
                         <li class="side-nav-item">
                             <a href="{{ route('transactions.index') }}" class="side-nav-link {{ request()->routeIs('transactions.index') ? 'active' : '' }}">
@@ -86,8 +122,36 @@
                                 <span class="menu-text">Scheduled Expenses</span>
                             </a>
                         </li>
+                        <li class="side-nav-item">
+                            <a href="{{ route('reimbursements.index') }}" class="side-nav-link {{ request()->routeIs('reimbursements.*') ? 'active' : '' }}">
+                                <span class="menu-text">Reimbursements</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="{{ route('loans.index') }}" class="side-nav-link {{ request()->routeIs('loans.*') ? 'active' : '' }}">
+                                <span class="menu-text">Loan Register</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="{{ route('settings.company') }}" class="side-nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                                <span class="menu-text">Opening Balance</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="{{ route('month-closings.index') }}" class="side-nav-link {{ request()->routeIs('month-closings.*') ? 'active' : '' }}">
+                                <span class="menu-text">Month Closing</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
+            </li>
+            @else
+            {{-- Non-managers see Reimbursements as a top-level item --}}
+            <li class="side-nav-item">
+                <a href="{{ route('reimbursements.index') }}" class="side-nav-link {{ request()->routeIs('reimbursements.*') ? 'active' : '' }}">
+                    <span class="menu-icon"><i class="ti ti-receipt-refund"></i></span>
+                    <span class="menu-text">Reimbursements</span>
+                </a>
             </li>
             @endif
 

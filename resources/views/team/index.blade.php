@@ -2,6 +2,22 @@
 
 @section('content')
 
+@if(session('invite_link'))
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <div class="fw-semibold mb-2"><i class="ti ti-link me-1"></i> Invite link for {{ session('invite_name') }}</div>
+    <div class="input-group">
+        <input type="text" id="invite-link-input" class="form-control form-control-sm font-monospace"
+               value="{{ session('invite_link') }}" readonly>
+        <button class="btn btn-outline-secondary btn-sm" type="button"
+                onclick="navigator.clipboard.writeText(document.getElementById('invite-link-input').value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.innerHTML='<i class=\'ti ti-copy\'></i> Copy'},1500)})">
+            <i class="ti ti-copy"></i> Copy
+        </button>
+    </div>
+    <small class="text-muted mt-1 d-block">Share this link with {{ session('invite_name') }}. It expires in 60 minutes.</small>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <div class="row mb-3">
     <div class="col">
         <a href="{{ route('team.create') }}" class="btn btn-primary">
@@ -38,10 +54,12 @@
                             </td>
                             <td>{{ $member->email }}</td>
                             <td>
-                                @if($member->isManager())
+                                @if($member->isMasterAdmin())
+                                    <span class="badge bg-danger-subtle text-danger">Master Admin</span>
+                                @elseif($member->role === \App\Enums\UserRole::Manager)
                                     <span class="badge bg-primary-subtle text-primary">Manager</span>
                                 @else
-                                    <span class="badge bg-info-subtle text-info">Team Member</span>
+                                    <span class="badge bg-info-subtle text-info">Team Lead</span>
                                 @endif
                             </td>
                             <td>
@@ -53,6 +71,12 @@
                             </td>
                             <td>{{ $member->created_at->format('d M Y') }}</td>
                             <td class="text-end">
+                                <form action="{{ route('team.invite-link', $member) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Get invite link">
+                                        <i class="ti ti-link"></i>
+                                    </button>
+                                </form>
                                 <a href="{{ route('team.edit', $member) }}" class="btn btn-sm btn-outline-primary">
                                     <i class="ti ti-pencil"></i>
                                 </a>

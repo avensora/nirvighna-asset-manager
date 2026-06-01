@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\InvoiceStatus;
 use App\Enums\TransactionType;
 use App\Models\Invoice;
+use App\Models\Lead;
+use App\Models\Project;
 use App\Models\ScheduledExpense;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -14,13 +18,34 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $isManager  = auth()->user()->isManager();
+        $user          = auth()->user();
+        $isMasterAdmin = $user->isMasterAdmin();
+        $isManager     = $user->isManager();
 
-        $recentActivity = \Spatie\Activitylog\Models\Activity::with('causer')
-            ->latest()
-            ->limit(8)
-            ->get();
+        // Team Lead dashboard
+        if (! $isManager) {
+            $assignedProjects = Project::whereHas('assignments', fn ($q) => $q->where('user_id', $user->id))
+                ->with('client')
+                ->orderByRaw('FIELD(status, "active", "planning", "on_hold", "completed", "cancelled")')
+                ->orderBy('deadline')
+                ->get();
 
+            $recentActivity = \Spatie\Activitylog\Models\Activity::with('causer')
+                ->where('causer_id', $user->id)
+                ->where('causer_type', User::class)
+                ->latest()
+                ->limit(10)
+                ->get();
+
+            return view('dashboard.index', [
+                'isMasterAdmin'    => false,
+                'isManager'        => false,
+                'assignedProjects' => $assignedProjects,
+                'recentActivity'   => $recentActivity,
+            ]);
+        }
+
+        // Manager & MasterAdmin dashboard
         $monthParam = $request->query('month');
         try {
             $pivot = $monthParam
@@ -34,20 +59,9 @@ class DashboardController extends Controller
         $monthLabel     = $pivot->format('F Y');
         $isCurrentMonth = $pivot->isSameMonth(Carbon::now());
 
-        if (!$isManager) {
-            return view('dashboard.index', [
-                'isManager'      => false,
-                'recentActivity' => $recentActivity,
-                'monthLabel'     => $monthLabel,
-                'selectedMonth'  => $selectedMonth,
-                'isCurrentMonth' => $isCurrentMonth,
-            ]);
-        }
-
         $start = $pivot->copy()->startOfMonth();
         $end   = $pivot->copy()->endOfMonth();
 
-        // Single query for current-month revenue + expenses
         $monthTotals = Transaction::selectRaw('type, SUM(amount) as total')
             ->whereBetween('date', [$start, $end])
             ->groupBy('type')
@@ -58,15 +72,29 @@ class DashboardController extends Controller
         $expensesThisMonth = (float) ($monthTotals->get('expense')?->total ?? 0);
         $netProfit         = $revenueThisMonth - $expensesThisMonth;
 
-        // Single query for outstanding invoice count + total
-        $outstanding = Invoice::whereIn('status', [InvoiceStatus::Draft, InvoiceStatus::Sent])
-            ->selectRaw('COUNT(*) as cnt, SUM(total) as ttl')
-            ->first();
+        $outstandingInvoices = Invoice::whereIn('status', [InvoiceStatus::Sent, InvoiceStatus::Partial])
+            ->withSum('payments', 'amount')
+            ->get();
 
-        $outstandingTotal = (float) ($outstanding->ttl ?? 0);
-        $outstandingCount = (int)   ($outstanding->cnt ?? 0);
+        $outstandingTotal = (float) $outstandingInvoices->sum(fn ($inv) => max(0, (float)$inv->total - (float)($inv->payments_sum_amount ?? 0)));
+        $outstandingCount = $outstandingInvoices->count();
 
-        // Single query for the 6-month chart (replaces 12 individual queries)
+        // Notify manager once per overdue invoice
+        Invoice::whereIn('status', [InvoiceStatus::Sent, InvoiceStatus::Partial])
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', Carbon::today())
+            ->select('id', 'invoice_number', 'due_date')
+            ->get()
+            ->each(function ($invoice) {
+                NotificationService::notifyOnce(
+                    auth()->id(),
+                    'invoice_overdue',
+                    "Overdue invoice: {$invoice->invoice_number}",
+                    "Invoice {$invoice->invoice_number} was due on {$invoice->due_date->format('d M Y')} and is still unpaid.",
+                    ['invoice_id' => $invoice->id]
+                );
+            });
+
         $sixMonthStart = $pivot->copy()->subMonths(5)->startOfMonth();
         $sixMonthEnd   = $pivot->copy()->endOfMonth();
 
@@ -95,7 +123,37 @@ class DashboardController extends Controller
             ->orderBy('due_date')
             ->get();
 
+        // Project pipeline by status
+        $projectPipelineRaw = Project::selectRaw('status, COUNT(*) as cnt')
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+
+        // Lead pipeline by stage
+        $leadPipelineRaw = Lead::selectRaw('stage, COUNT(*) as cnt')
+            ->groupBy('stage')
+            ->pluck('cnt', 'stage');
+
+        // MasterAdmin-only extras
+        $userCount      = 0;
+        $leadsTotal     = 0;
+        $leadsWon       = 0;
+        $conversionRate = 0;
+
+        if ($isMasterAdmin) {
+            $userCount  = User::count();
+            $leadsTotal = Lead::count();
+            $leadsWon   = Lead::where('stage', 'won')->count();
+            $leadsClosed = Lead::whereIn('stage', ['won', 'lost'])->count();
+            $conversionRate = $leadsClosed > 0 ? round($leadsWon / $leadsClosed * 100, 1) : 0;
+        }
+
+        $recentActivity = \Spatie\Activitylog\Models\Activity::with('causer')
+            ->latest()
+            ->limit(8)
+            ->get();
+
         return view('dashboard.index', compact(
+            'isMasterAdmin',
             'isManager',
             'revenueThisMonth',
             'expensesThisMonth',
@@ -109,7 +167,13 @@ class DashboardController extends Controller
             'monthLabel',
             'selectedMonth',
             'isCurrentMonth',
-            'upcomingExpenses'
+            'upcomingExpenses',
+            'projectPipelineRaw',
+            'leadPipelineRaw',
+            'userCount',
+            'leadsTotal',
+            'leadsWon',
+            'conversionRate'
         ));
     }
 }

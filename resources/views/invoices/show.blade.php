@@ -21,7 +21,7 @@
                     <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
                         <i class="ti ti-file-download me-1"></i> PDF
                     </a>
-                    @if($invoice->status !== \App\Enums\InvoiceStatus::Paid)
+                    @if(!in_array($invoice->status, [\App\Enums\InvoiceStatus::Paid, \App\Enums\InvoiceStatus::Partial]))
                     <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-sm btn-outline-primary">
                         <i class="ti ti-pencil me-1"></i> Edit
                     </a>
@@ -123,6 +123,34 @@
     {{-- Actions panel --}}
     <div class="col-xl-4">
 
+        {{-- Payment summary --}}
+        @php
+            $amountPaid = $invoice->payments->sum('amount');
+            $amountDue  = max(0, (float)$invoice->total - (float)$amountPaid);
+        @endphp
+        @if($invoice->status !== \App\Enums\InvoiceStatus::Draft)
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="card-title mb-0">Payment Summary</h6></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted small">Invoice Total</span>
+                    <span class="fw-semibold">{{ format_inr((float)$invoice->total) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted small">Paid</span>
+                    <span class="text-success fw-semibold">{{ format_inr((float)$amountPaid) }}</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-medium">Balance Due</span>
+                    <span class="fw-bold {{ $amountDue > 0 ? ($invoice->isOverdue() ? 'text-danger' : 'text-warning') : 'text-success' }}">
+                        {{ $amountDue > 0 ? format_inr($amountDue) : 'Fully Paid' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Status actions --}}
         <div class="card mb-3">
             <div class="card-header"><h6 class="card-title mb-0">Actions</h6></div>
@@ -133,7 +161,7 @@
                     @csrf
                     <button type="submit" class="btn btn-outline-info w-100">
                         <i class="ti ti-mail-forward me-1"></i>
-                        @if($invoice->status === \App\Enums\InvoiceStatus::Sent)
+                        @if(in_array($invoice->status, [\App\Enums\InvoiceStatus::Sent, \App\Enums\InvoiceStatus::Partial]))
                             Resend to {{ $invoice->client->email }}
                         @else
                             Send to {{ $invoice->client->email }}
@@ -150,7 +178,7 @@
                 <form action="{{ route('invoices.mark-paid', $invoice) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-success w-100">
-                        <i class="ti ti-circle-check me-1"></i> Mark as Paid
+                        <i class="ti ti-circle-check me-1"></i> Mark as Fully Paid
                     </button>
                 </form>
                 @else
@@ -165,8 +193,101 @@
             </div>
         </div>
 
+        {{-- Record Payment --}}
+        @if($invoice->status !== \App\Enums\InvoiceStatus::Paid && $invoice->status !== \App\Enums\InvoiceStatus::Draft)
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="card-title mb-0">Record Payment</h6></div>
+            <div class="card-body">
+                <form action="{{ route('invoice-payments.store', $invoice) }}" method="POST">
+                    @csrf
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" name="amount" class="form-control @error('amount') is-invalid @enderror"
+                                   step="0.01" min="0.01" max="{{ $amountDue }}"
+                                   placeholder="0.00" required>
+                            @error('amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="payment_date" class="form-control form-control-sm @error('payment_date') is-invalid @enderror"
+                               value="{{ date('Y-m-d') }}" required>
+                        @error('payment_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium">Method</label>
+                        <select name="payment_method" class="form-select form-select-sm">
+                            <option value="">— Select —</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Reference</label>
+                        <input type="text" name="reference" class="form-control form-control-sm"
+                               placeholder="UTR / transaction ID" maxlength="100">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="ti ti-cash me-1"></i> Save Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+        @endif
+
+        {{-- Payment History --}}
+        @if($invoice->payments->isNotEmpty())
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="card-title mb-0">Payment History</h6></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Method</th>
+                            <th class="text-end">Amount</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($invoice->payments as $payment)
+                        <tr>
+                            <td class="small">{{ $payment->payment_date->format('d M Y') }}</td>
+                            <td class="small text-muted">{{ $payment->payment_method ? ucfirst(str_replace('_',' ',$payment->payment_method)) : '—' }}</td>
+                            <td class="text-end small fw-semibold text-success">{{ format_inr((float)$payment->amount) }}</td>
+                            <td class="text-end">
+                                <form action="{{ route('invoice-payments.destroy', [$invoice, $payment]) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Remove this payment?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-xs btn-outline-danger p-0 px-1" style="font-size:0.75rem">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @if($payment->reference)
+                        <tr class="border-0">
+                            <td colspan="4" class="pt-0 pb-1 small text-muted" style="font-size:0.75rem">
+                                Ref: {{ $payment->reference }}
+                                @if($payment->recorder) · {{ $payment->recorder->name }} @endif
+                            </td>
+                        </tr>
+                        @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         {{-- Danger zone --}}
-        @if($invoice->status !== \App\Enums\InvoiceStatus::Paid)
+        @if(!in_array($invoice->status, [\App\Enums\InvoiceStatus::Paid, \App\Enums\InvoiceStatus::Partial]))
         <div class="card border-danger">
             <div class="card-body">
                 <form action="{{ route('invoices.destroy', $invoice) }}" method="POST"

@@ -11,26 +11,38 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Manager account
-        User::firstOrCreate(
+        // Master Admin — full platform control
+        User::updateOrCreate(
             ['email' => 'admin@nirvighna.test'],
             [
-                'name' => 'Admin',
-                'password' => Hash::make('password'),
-                'role' => UserRole::Manager,
-                'is_active' => true,
+                'name'              => 'Admin',
+                'password'          => Hash::make('password'),
+                'role'              => UserRole::MasterAdmin,
+                'is_active'         => true,
                 'email_verified_at' => now(),
             ]
         );
 
-        // Demo team member
+        // Manager — daily operations
         User::firstOrCreate(
+            ['email' => 'manager@nirvighna.test'],
+            [
+                'name'              => 'Manager',
+                'password'          => Hash::make('password'),
+                'role'              => UserRole::Manager,
+                'is_active'         => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Team Lead — project execution
+        User::updateOrCreate(
             ['email' => 'team@nirvighna.test'],
             [
-                'name' => 'Team Member',
-                'password' => Hash::make('password'),
-                'role' => UserRole::TeamMember,
-                'is_active' => true,
+                'name'              => 'Team Lead',
+                'password'          => Hash::make('password'),
+                'role'              => UserRole::TeamLead,
+                'is_active'         => true,
                 'email_verified_at' => now(),
             ]
         );

@@ -4,7 +4,7 @@
 
 {{-- Summary strip --}}
 <div class="row g-3 mb-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card border-0 bg-success-subtle">
             <div class="card-body py-3">
                 <p class="text-muted fw-medium mb-1 small">Total Income</p>
@@ -12,7 +12,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card border-0 bg-danger-subtle">
             <div class="card-body py-3">
                 <p class="text-muted fw-medium mb-1 small">Total Expenses</p>
@@ -20,18 +20,43 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         @php $net = (float)($totals->income ?? 0) - (float)($totals->expense ?? 0); @endphp
         <div class="card border-0 {{ $net >= 0 ? 'bg-primary-subtle' : 'bg-warning-subtle' }}">
             <div class="card-body py-3">
-                <p class="text-muted fw-medium mb-1 small">Net</p>
+                <p class="text-muted fw-medium mb-1 small">Net (Filtered)</p>
                 <h5 class="mb-0 fw-bold {{ $net >= 0 ? 'text-primary' : 'text-warning' }}">
                     {{ $net >= 0 ? '' : '−' }}{{ format_inr(abs($net)) }}
                 </h5>
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card border-0 {{ $currentBalance >= 0 ? 'bg-success-subtle' : 'bg-danger-subtle' }}" title="Opening balance + all transactions from {{ $openingBalanceDate }}">
+            <div class="card-body py-3">
+                <p class="text-muted fw-medium mb-1 small">
+                    Company Balance
+                    <a href="{{ route('settings.company') }}" class="ms-1 text-muted" title="Set opening balance"><i class="ti ti-settings fs-12"></i></a>
+                </p>
+                <h5 class="mb-0 fw-bold {{ $currentBalance >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ $currentBalance >= 0 ? '' : '−' }}{{ format_inr(abs($currentBalance)) }}
+                </h5>
+                <small class="text-muted" style="font-size:0.7rem">Opening: {{ format_inr($openingBalance) }} · Since {{ $openingBalanceDate }}</small>
+            </div>
+        </div>
+    </div>
 </div>
+
+{{-- Pending approvals alert --}}
+@if(auth()->user()->isManager() && $pendingCount > 0)
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+    <i class="ti ti-clock-hour-4 fs-20"></i>
+    <div>
+        <strong>{{ $pendingCount }} transaction{{ $pendingCount > 1 ? 's' : '' }} awaiting approval.</strong>
+        <a href="{{ route('transactions.index', ['approval' => 'pending']) }}" class="ms-2">Review now &rarr;</a>
+    </div>
+</div>
+@endif
 
 {{-- Toolbar --}}
 <div class="row mb-3 align-items-center">
@@ -97,7 +122,7 @@
                     </thead>
                     <tbody>
                         @foreach($transactions as $txn)
-                        <tr>
+                        <tr class="{{ $txn->approval_status === 'pending' ? 'table-warning' : ($txn->approval_status === 'rejected' ? 'table-danger opacity-75' : '') }}">
                             <td class="text-nowrap">{{ $txn->date->format('d M Y') }}</td>
                             <td>
                                 <span class="badge {{ $txn->type->badgeClass() }}">{{ $txn->type->label() }}</span>
@@ -109,6 +134,19 @@
                                 {{ $txn->type === \App\Enums\TransactionType::Expense ? '−' : '' }}{{ format_inr((float)$txn->amount) }}
                             </td>
                             <td class="text-end">
+                                @if($txn->approval_status === 'pending')
+                                    <span class="badge bg-warning text-dark me-1">Pending</span>
+                                    @if(auth()->user()->isManager())
+                                    <form action="{{ route('transactions.approve', $txn) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success me-1" title="Approve">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                    </form>
+                                    @endif
+                                @elseif($txn->approval_status === 'rejected')
+                                    <span class="badge bg-danger me-1">Rejected</span>
+                                @endif
                                 <a href="{{ route('transactions.edit', $txn) }}" class="btn btn-sm btn-outline-primary me-1">
                                     <i class="ti ti-pencil"></i>
                                 </a>

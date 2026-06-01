@@ -1,0 +1,154 @@
+/* ─────────────────────────────────────────────
+   Nirvighna — Mobile-responsive overrides
+   ────────────────────────────────────────────── */
+
+/* Prevent global horizontal overflow on mobile */
+body { overflow-x: hidden; }
+
+/* ── Chat: Mobile sidebar becomes horizontal scrollable room tabs ── */
+@media (max-width: 767.98px) {
+    #chat-outer {
+        flex-direction: column !important;
+        min-height: 300px !important;
+    }
+
+    #chat-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 44px;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--bs-border-color);
+        flex-shrink: 0 !important;
+        /* Hide scrollbar but keep scrollability */
+        scrollbar-width: none;
+    }
+    #chat-sidebar::-webkit-scrollbar { display: none; }
+
+    #chat-sidebar a.room-link {
+        padding: 10px 14px !important;
+        white-space: nowrap;
+        border-bottom: none !important;
+        border-right: 1px solid var(--bs-border-color-translucent);
+        display: flex !important;
+        align-items: center;
+        font-size: .85rem;
+    }
+
+    /* Hide elements that don't work in horizontal tab layout */
+    .chat-group-label,
+    .chat-new-group-btn,
+    #chat-sidebar > .flex-grow-1 { display: none !important; }
+
+    /* Wider message bubbles on narrow screens */
+    .msg-bubble { max-width: 85% !important; }
+
+    /* Chat input: remove attach button label to save space */
+    #chat-form .input-group textarea { font-size: .9rem; }
+}
+
+/* ── Topbar: Notification dropdown — prevent overflow on small phones ── */
+@media (max-width: 479.98px) {
+    #notif-dropdown {
+        min-width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
+    }
+}
+
+/* ── Dashboard: Filter bar stacks vertically on xs screens ── */
+@media (max-width: 575.98px) {
+    .dash-filter-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: .5rem !important;
+    }
+    .dash-filter-bar form {
+        justify-content: flex-end;
+    }
+    .dash-filter-bar input[type="month"] {
+        width: auto !important;
+        flex: 1;
+        min-width: 0;
+    }
+    /* Pipeline / lead stage labels: narrower on mobile */
+    .pipeline-label { width: 80px !important; }
+}
+
+/* ── Filter toolbar forms: wrap on small screens ── */
+@media (max-width: 575.98px) {
+    /* Search inputs in toolbar forms take full available width */
+    .toolbar-form input[type="text"],
+    .toolbar-form select {
+        width: 100% !important;
+        max-width: 100%;
+    }
+    /* Action button group wraps to its own line */
+    .toolbar-actions {
+        flex-wrap: wrap;
+        gap: .25rem !important;
+    }
+}
+
+/* ── General: Prevent tables from forcing viewport overflow ── */
+.table-responsive { -webkit-overflow-scrolling: touch; }
+
+/* ── KPI card icon: slightly smaller on mobile to prevent layout shift ── */
+@media (max-width: 575.98px) {
+    .avatar-lg {
+        width: 44px !important;
+        height: 44px !important;
+    }
+}
+
+/* ── Invoice: line items become stacked cards on mobile ── */
+@media (max-width: 575.98px) {
+    .invoice-items-table thead { display: none; }
+
+    .invoice-items-table tbody tr.item-row {
+        display: block;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 8px;
+        margin: 8px;
+        padding: 4px 10px 8px;
+    }
+
+    .invoice-items-table tbody tr.item-row td {
+        display: flex;
+        align-items: center;
+        padding: 5px 0;
+        border: none !important;
+        gap: 8px;
+    }
+
+    .invoice-items-table tbody tr.item-row td::before {
+        content: attr(data-label);
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--bs-secondary-color);
+        text-transform: uppercase;
+        min-width: 76px;
+        flex-shrink: 0;
+    }
+
+    /* Description: label above, input full width */
+    .invoice-items-table tbody tr.item-row td[data-label="Description"] {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .invoice-items-table tbody tr.item-row td[data-label="Description"]::before {
+        margin-bottom: 3px;
+    }
+
+    /* Delete button: no label, right-aligned, separator above */
+    .invoice-items-table tbody tr.item-row td[data-label=""]::before {
+        display: none;
+    }
+    .invoice-items-table tbody tr.item-row td[data-label=""] {
+        justify-content: flex-end;
+        border-top: 1px solid var(--bs-border-color-translucent) !important;
+        margin-top: 4px;
+        padding-top: 8px;
+    }
+}

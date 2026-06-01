@@ -34,8 +34,11 @@
                             @php $isSelf = $user->id === auth()->id(); @endphp
                             <select name="role" class="form-select @error('role') is-invalid @enderror"
                                     {{ $isSelf ? 'disabled' : '' }}>
-                                <option value="team_member" {{ old('role', $user->role->value) === 'team_member' ? 'selected' : '' }}>Team Member</option>
+                                <option value="team_lead" {{ old('role', $user->role->value) === 'team_lead' ? 'selected' : '' }}>Team Lead</option>
                                 <option value="manager" {{ old('role', $user->role->value) === 'manager' ? 'selected' : '' }}>Manager</option>
+                                @if(auth()->user()->isMasterAdmin())
+                                <option value="master_admin" {{ old('role', $user->role->value) === 'master_admin' ? 'selected' : '' }}>Master Admin</option>
+                                @endif
                             </select>
                             @if($isSelf)
                                 <input type="hidden" name="role" value="{{ $user->role->value }}">

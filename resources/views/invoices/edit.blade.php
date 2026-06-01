@@ -49,7 +49,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table mb-0">
+                    <table class="table mb-0 invoice-items-table">
                         <thead class="table-light">
                             <tr>
                                 <th style="min-width:200px">Description</th>
@@ -72,20 +72,20 @@
                             @endphp
                             @foreach($existingItems as $i => $item)
                             <tr class="item-row">
-                                <td><input type="text" name="items[{{ $i }}][description]"
+                                <td data-label="Description"><input type="text" name="items[{{ $i }}][description]"
                                            class="form-control form-control-sm" value="{{ $item['description'] }}" required></td>
-                                <td><input type="number" name="items[{{ $i }}][quantity]" data-field="quantity"
+                                <td data-label="Qty"><input type="number" name="items[{{ $i }}][quantity]" data-field="quantity"
                                            class="form-control form-control-sm" step="0.01" min="0.01"
                                            value="{{ $item['quantity'] }}" required
                                            oninput="updateRowAmount(this.closest('tr'))"></td>
-                                <td><input type="number" name="items[{{ $i }}][unit_price]" data-field="unit_price"
+                                <td data-label="Unit Price"><input type="number" name="items[{{ $i }}][unit_price]" data-field="unit_price"
                                            class="form-control form-control-sm" step="0.01" min="0"
                                            value="{{ $item['unit_price'] }}" required
                                            oninput="updateRowAmount(this.closest('tr'))"></td>
-                                <td><input type="number" name="items[{{ $i }}][amount]" data-field="amount"
+                                <td data-label="Amount"><input type="number" name="items[{{ $i }}][amount]" data-field="amount"
                                            class="form-control form-control-sm bg-light"
                                            value="{{ $item['amount'] }}" readonly tabindex="-1"></td>
-                                <td class="text-center">
+                                <td data-label="" class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(this)">
                                         <i class="ti ti-trash"></i>
                                     </button>
@@ -228,11 +228,11 @@ function addItem() {
     const tr    = document.createElement('tr');
     tr.className = 'item-row';
     tr.innerHTML = `
-        <td><input type="text" name="items[${idx}][description]" class="form-control form-control-sm" required></td>
-        <td><input type="number" name="items[${idx}][quantity]" data-field="quantity" class="form-control form-control-sm" step="0.01" min="0.01" value="1" required oninput="updateRowAmount(this.closest('tr'))"></td>
-        <td><input type="number" name="items[${idx}][unit_price]" data-field="unit_price" class="form-control form-control-sm" step="0.01" min="0" value="0" required oninput="updateRowAmount(this.closest('tr'))"></td>
-        <td><input type="number" name="items[${idx}][amount]" data-field="amount" class="form-control form-control-sm bg-light" value="0.00" readonly tabindex="-1"></td>
-        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(this)"><i class="ti ti-trash"></i></button></td>
+        <td data-label="Description"><input type="text" name="items[${idx}][description]" class="form-control form-control-sm" required></td>
+        <td data-label="Qty"><input type="number" name="items[${idx}][quantity]" data-field="quantity" class="form-control form-control-sm" step="0.01" min="0.01" value="1" required oninput="updateRowAmount(this.closest('tr'))"></td>
+        <td data-label="Unit Price"><input type="number" name="items[${idx}][unit_price]" data-field="unit_price" class="form-control form-control-sm" step="0.01" min="0" value="0" required oninput="updateRowAmount(this.closest('tr'))"></td>
+        <td data-label="Amount"><input type="number" name="items[${idx}][amount]" data-field="amount" class="form-control form-control-sm bg-light" value="0.00" readonly tabindex="-1"></td>
+        <td data-label="" class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(this)"><i class="ti ti-trash"></i></button></td>
     `;
     tbody.appendChild(tr);
     tr.querySelector('input[type=text]').focus();

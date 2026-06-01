@@ -9,8 +9,8 @@
         <img src="{{ asset('boron/assets/images/logo.png') }}" alt="logo" height="30" class="logo-light">
     </a>
 
-    <h4 class="fw-semibold mb-2">Create New Password</h4>
-    <p class="text-muted mb-4">Your new password must be different from your previous password.</p>
+    <h4 class="fw-semibold mb-2">Set Your Password</h4>
+    <p class="text-muted mb-4">Enter your email and choose a password to access your account.</p>
 
     <form method="POST" action="{{ route('password.store') }}" class="text-start mb-3">
         @csrf

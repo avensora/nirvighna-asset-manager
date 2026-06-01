@@ -28,8 +28,12 @@ class TeamController extends Controller
         $data = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'role'  => 'required|in:manager,team_member',
+            'role'  => 'required|in:master_admin,manager,team_lead',
         ]);
+
+        if ($data['role'] === 'master_admin' && ! auth()->user()->isMasterAdmin()) {
+            return back()->with('error', 'Only a Master Admin can assign the Master Admin role.');
+        }
 
         $user = User::create([
             'name'              => $data['name'],
@@ -40,11 +44,10 @@ class TeamController extends Controller
             'is_active'         => true,
         ]);
 
-        // Send password-reset link so the invitee can set their own password
         try {
             Password::sendResetLink(['email' => $user->email]);
             $emailNote = " A password setup email has been sent to {$user->email}.";
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             $emailNote = " (Mail server unavailable — share the password reset link manually.)";
         }
 
@@ -58,6 +61,16 @@ class TeamController extends Controller
             ->with('success', "{$user->name} invited.{$emailNote}");
     }
 
+    public function inviteLink(User $user): RedirectResponse
+    {
+        $token = Password::broker()->createToken($user);
+        $url   = route('password.reset', ['token' => $token, 'email' => $user->email]);
+
+        return redirect()->route('team.index')
+            ->with('invite_link', $url)
+            ->with('invite_name', $user->name);
+    }
+
     public function edit(User $user): View
     {
         return view('team.edit', compact('user'));
@@ -66,26 +79,34 @@ class TeamController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'role'  => 'required|in:manager,team_member',
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|email|max:255|unique:users,email,' . $user->id,
+            'role'      => 'required|in:master_admin,manager,team_lead',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        // Guard: can't change own role or deactivate self
+        if ($data['role'] === 'master_admin' && ! auth()->user()->isMasterAdmin()) {
+            return back()->with('error', 'Only a Master Admin can assign the Master Admin role.');
+        }
+
         if ($user->id === auth()->id()) {
-            if ($data['role'] !== 'manager') {
+            if ($data['role'] !== $user->role->value) {
                 return back()->with('error', 'You cannot change your own role.');
             }
-            if (!$request->boolean('is_active')) {
+            if (! $request->boolean('is_active')) {
                 return back()->with('error', 'You cannot deactivate your own account.');
             }
         }
 
-        // Guard: can't remove last active manager
-        $isBeingDemoted     = $user->role === UserRole::Manager && $data['role'] !== 'manager';
-        $isBeingDeactivated = $user->is_active && !$request->boolean('is_active');
-        if ($user->role === UserRole::Manager && ($isBeingDemoted || $isBeingDeactivated)) {
-            $activeManagerCount = User::where('role', UserRole::Manager)->where('is_active', true)->count();
+        // Guard: can't remove last active privileged user (manager or above)
+        $newRole            = UserRole::from($data['role']);
+        $isBeingDemoted     = $user->isManager() && $newRole->rank() < UserRole::Manager->rank();
+        $isBeingDeactivated = $user->is_active && ! $request->boolean('is_active');
+
+        if ($user->isManager() && ($isBeingDemoted || $isBeingDeactivated)) {
+            $activeManagerCount = User::whereIn('role', ['master_admin', 'manager'])
+                ->where('is_active', true)
+                ->count();
             if ($activeManagerCount <= 1) {
                 return back()->with('error', 'Cannot demote or deactivate the last active manager.');
             }

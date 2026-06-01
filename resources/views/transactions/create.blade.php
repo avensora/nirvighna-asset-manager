@@ -72,6 +72,21 @@
                         @error('reference')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
+                    @if($projects->isNotEmpty())
+                    <div class="col-md-6">
+                        <label class="form-label">Link to Project <span class="text-muted small">(optional)</span></label>
+                        <select name="project_id" class="form-select @error('project_id') is-invalid @enderror">
+                            <option value="">— None —</option>
+                            @foreach($projects as $project)
+                                <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                    {{ $project->title }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('project_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    @endif
+
                     <div class="col-12">
                         <label class="form-label">Description <span class="text-muted small">(optional)</span></label>
                         <textarea name="description" rows="3" class="form-control @error('description') is-invalid @enderror"

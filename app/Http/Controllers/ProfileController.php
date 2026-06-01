@@ -12,7 +12,11 @@ class ProfileController extends Controller
 {
     public function edit(): View
     {
-        return view('profile.edit', ['user' => auth()->user()]);
+        $user          = auth()->user();
+        $twoFactorConfig = $user->twoFactorConfig;
+        $loginHistory  = $user->loginHistories()->latest('created_at')->limit(10)->get();
+
+        return view('profile.edit', compact('user', 'twoFactorConfig', 'loginHistory'));
     }
 
     public function update(Request $request): RedirectResponse

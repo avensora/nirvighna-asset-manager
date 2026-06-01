@@ -17,7 +17,7 @@ class InvoiceController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Invoice::with('client')->latest();
+        $query = Invoice::with('client')->withSum('payments', 'amount')->latest();
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -88,15 +88,15 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice): View
     {
-        $invoice->load('items', 'client');
+        $invoice->load('items', 'client', 'payments.recorder');
         return view('invoices.show', compact('invoice'));
     }
 
     public function edit(Invoice $invoice): View|RedirectResponse
     {
-        if ($invoice->status === InvoiceStatus::Paid) {
+        if (in_array($invoice->status, [InvoiceStatus::Paid, InvoiceStatus::Partial])) {
             return redirect()->route('invoices.show', $invoice)
-                ->with('error', 'Paid invoices cannot be edited.');
+                ->with('error', 'Invoices with recorded payments cannot be edited.');
         }
 
         $clients = Client::orderBy('name')->get();
@@ -106,9 +106,9 @@ class InvoiceController extends Controller
 
     public function update(Request $request, Invoice $invoice): RedirectResponse
     {
-        if ($invoice->status === InvoiceStatus::Paid) {
+        if (in_array($invoice->status, [InvoiceStatus::Paid, InvoiceStatus::Partial])) {
             return redirect()->route('invoices.show', $invoice)
-                ->with('error', 'Paid invoices cannot be edited.');
+                ->with('error', 'Invoices with recorded payments cannot be edited.');
         }
 
         $data = $request->validate([
@@ -160,11 +160,22 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice): RedirectResponse
     {
-        if ($invoice->status === InvoiceStatus::Paid) {
-            return back()->with('error', 'Paid invoices cannot be deleted.');
+        if (in_array($invoice->status, [InvoiceStatus::Paid, InvoiceStatus::Partial])) {
+            return back()->with('error', 'Invoices with recorded payments cannot be deleted.');
         }
 
+        $request = request();
+        $voidReason = $request->input('void_reason');
+
         $number = $invoice->invoice_number;
+
+        if ($voidReason) {
+            $invoice->update([
+                'void_reason' => $voidReason,
+                'voided_at'   => now(),
+                'voided_by'   => auth()->id(),
+            ]);
+        }
 
         activity()
             ->causedBy(auth()->user())

@@ -4,14 +4,25 @@ namespace App\Enums;
 
 enum UserRole: string
 {
+    case MasterAdmin = 'master_admin';
     case Manager = 'manager';
-    case TeamMember = 'team_member';
+    case TeamLead = 'team_lead';
 
     public function label(): string
     {
         return match($this) {
-            UserRole::Manager => 'Manager',
-            UserRole::TeamMember => 'Team Member',
+            UserRole::MasterAdmin => 'Master Admin',
+            UserRole::Manager     => 'Manager',
+            UserRole::TeamLead    => 'Team Lead',
+        };
+    }
+
+    public function rank(): int
+    {
+        return match($this) {
+            UserRole::MasterAdmin => 3,
+            UserRole::Manager     => 2,
+            UserRole::TeamLead    => 1,
         };
     }
 }

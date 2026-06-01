@@ -31,8 +31,11 @@
                         <div class="col-12">
                             <label class="form-label">Role <span class="text-danger">*</span></label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror">
-                                <option value="team_member" {{ old('role', 'team_member') === 'team_member' ? 'selected' : '' }}>Team Member</option>
+                                <option value="team_lead" {{ old('role', 'team_lead') === 'team_lead' ? 'selected' : '' }}>Team Lead</option>
                                 <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
+                                @if(auth()->user()->isMasterAdmin())
+                                <option value="master_admin" {{ old('role') === 'master_admin' ? 'selected' : '' }}>Master Admin</option>
+                                @endif
                             </select>
                             @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>

@@ -5,8 +5,8 @@
 @if($isManager)
 
 {{-- Month Filter --}}
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <div class="d-flex align-items-center gap-2">
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2 dash-filter-bar">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         @if(!$isCurrentMonth)
             <span class="badge bg-warning-subtle text-warning fw-medium px-3 py-2">
                 <i class="ti ti-calendar-event me-1"></i>Viewing {{ $monthLabel }}
@@ -16,10 +16,10 @@
             </a>
         @endif
     </div>
-    <form method="GET" action="{{ route('dashboard') }}" class="d-flex align-items-center gap-2">
-        <label class="form-label mb-0 text-muted small fw-semibold">Filter by Month</label>
+    <form method="GET" action="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 ms-auto">
+        <label class="form-label mb-0 text-muted small fw-semibold d-none d-sm-block">Filter by Month</label>
         <input type="month" name="month" value="{{ $selectedMonth }}"
-               class="form-control form-control-sm" style="width:160px;"
+               class="form-control form-control-sm" style="width:160px;min-width:130px;"
                onchange="this.form.submit()">
     </form>
 </div>
@@ -94,6 +94,169 @@
     </div>
 </div>
 
+@if($isMasterAdmin)
+{{-- Master Admin Extra KPIs --}}
+<div class="row g-3 mb-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 border-start border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted fw-medium mb-1">Total Users</p>
+                        <h4 class="mb-0 fw-bold">{{ $userCount }}</h4>
+                        <small class="text-muted">active accounts</small>
+                    </div>
+                    <div class="avatar-lg bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="ti ti-users fs-24"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 border-start border-4 border-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted fw-medium mb-1">Total Leads</p>
+                        <h4 class="mb-0 fw-bold">{{ $leadsTotal }}</h4>
+                        <small class="text-muted">across all stages</small>
+                    </div>
+                    <div class="avatar-lg bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="ti ti-target fs-24"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 border-start border-4 border-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted fw-medium mb-1">Leads Won</p>
+                        <h4 class="mb-0 fw-bold text-success">{{ $leadsWon }}</h4>
+                        <small class="text-muted">converted to projects</small>
+                    </div>
+                    <div class="avatar-lg bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="ti ti-trophy fs-24"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 border-start border-4 border-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted fw-medium mb-1">Conversion Rate</p>
+                        <h4 class="mb-0 fw-bold">{{ $conversionRate }}%</h4>
+                        <small class="text-muted">of closed leads won</small>
+                    </div>
+                    <div class="avatar-lg bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="ti ti-percentage fs-24"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Project Pipeline + Lead Pipeline --}}
+<div class="row g-3 mb-3">
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Project Pipeline</h5>
+                <a href="{{ route('projects.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @php
+                    $statuses = [
+                        'planning'  => ['label' => 'Planning',   'color' => 'secondary'],
+                        'active'    => ['label' => 'Active',     'color' => 'success'],
+                        'on_hold'   => ['label' => 'On Hold',    'color' => 'warning'],
+                        'completed' => ['label' => 'Completed',  'color' => 'primary'],
+                        'cancelled' => ['label' => 'Cancelled',  'color' => 'danger'],
+                    ];
+                    $totalProjects = $projectPipelineRaw->sum();
+                @endphp
+                @if($totalProjects === 0)
+                    <p class="text-muted text-center py-3">No projects yet. <a href="{{ route('projects.create') }}">Create one</a>.</p>
+                @else
+                    @foreach($statuses as $key => $meta)
+                    @php $cnt = (int)($projectPipelineRaw->get($key, 0)); @endphp
+                    @if($cnt > 0)
+                    <div class="d-flex align-items-center mb-2">
+                        <div style="width:110px" class="text-muted small fw-medium pipeline-label">{{ $meta['label'] }}</div>
+                        <div class="flex-grow-1 mx-2">
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar bg-{{ $meta['color'] }}"
+                                     style="width:{{ round($cnt / $totalProjects * 100) }}%"></div>
+                            </div>
+                        </div>
+                        <div class="fw-semibold small" style="width:30px;text-align:right">{{ $cnt }}</div>
+                    </div>
+                    @endif
+                    @endforeach
+                    <div class="text-end mt-2">
+                        <small class="text-muted">{{ $totalProjects }} total project{{ $totalProjects !== 1 ? 's' : '' }}</small>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Lead Pipeline</h5>
+                <a href="{{ route('leads.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @php
+                    $stages = [
+                        'new_lead'      => ['label' => 'New Lead',      'color' => 'secondary'],
+                        'contacted'     => ['label' => 'Contacted',     'color' => 'info'],
+                        'interested'    => ['label' => 'Interested',    'color' => 'primary'],
+                        'proposal_sent' => ['label' => 'Proposal Sent', 'color' => 'warning'],
+                        'won'           => ['label' => 'Won',           'color' => 'success'],
+                        'lost'          => ['label' => 'Lost',          'color' => 'danger'],
+                    ];
+                    $totalLeads = $leadPipelineRaw->sum();
+                @endphp
+                @if($totalLeads === 0)
+                    <p class="text-muted text-center py-3">No leads yet. <a href="{{ route('leads.create') }}">Add one</a>.</p>
+                @else
+                    @foreach($stages as $key => $meta)
+                    @php $cnt = (int)($leadPipelineRaw->get($key, 0)); @endphp
+                    @if($cnt > 0)
+                    <div class="d-flex align-items-center mb-2">
+                        <div style="width:110px" class="text-muted small fw-medium pipeline-label">{{ $meta['label'] }}</div>
+                        <div class="flex-grow-1 mx-2">
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar bg-{{ $meta['color'] }}"
+                                     style="width:{{ round($cnt / $totalLeads * 100) }}%"></div>
+                            </div>
+                        </div>
+                        <div class="fw-semibold small" style="width:30px;text-align:right">{{ $cnt }}</div>
+                    </div>
+                    @endif
+                    @endforeach
+                    <div class="text-end mt-2">
+                        <small class="text-muted">{{ $totalLeads }} total lead{{ $totalLeads !== 1 ? 's' : '' }}</small>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
 @if($upcomingExpenses->isNotEmpty())
 {{-- Upcoming Scheduled Expenses --}}
 <div class="row g-3 mb-3">
@@ -151,7 +314,6 @@
 
 {{-- Chart + Activity --}}
 <div class="row g-3">
-
     <div class="col-xl-7">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -196,21 +358,103 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @else
 
-{{-- Team Member Dashboard --}}
+{{-- ===== Team Lead Dashboard ===== --}}
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <h5 class="fw-semibold mb-0">My Assigned Projects</h5>
+            <a href="{{ route('projects.index') }}" class="btn btn-sm btn-outline-primary">
+                <i class="ti ti-layout-kanban me-1"></i>All Projects
+            </a>
+        </div>
+    </div>
+</div>
+
+@if($assignedProjects->isEmpty())
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="ti ti-layout-kanban fs-48 text-muted mb-3 d-block"></i>
+                <p class="text-muted mb-0">No projects assigned to you yet.</p>
+            </div>
+        </div>
+    </div>
+</div>
+@else
+<div class="row g-3 mb-3">
+    @foreach($assignedProjects as $project)
+    @php
+        $isOverdue = $project->deadline && $project->deadline->isPast()
+            && !in_array($project->status->value, ['completed', 'cancelled']);
+        $progressColor = $project->progress >= 75 ? 'success'
+            : ($project->progress >= 40 ? 'primary' : 'warning');
+    @endphp
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100 {{ $isOverdue ? 'border-danger' : '' }}">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div class="flex-grow-1 overflow-hidden me-2">
+                        <a href="{{ route('projects.show', $project) }}" class="fw-semibold text-dark text-truncate d-block">
+                            {{ $project->title }}
+                        </a>
+                        @if($project->client)
+                            <small class="text-muted">{{ $project->client->name }}</small>
+                        @else
+                            <small class="text-muted fst-italic">Internal</small>
+                        @endif
+                    </div>
+                    <span class="badge {{ $project->status->badgeClass() }} flex-shrink-0">
+                        {{ $project->status->label() }}
+                    </span>
+                </div>
+
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">Progress</small>
+                        <small class="fw-semibold">{{ $project->progress }}%</small>
+                    </div>
+                    <div class="progress" style="height:6px">
+                        <div class="progress-bar bg-{{ $progressColor }}"
+                             style="width:{{ $project->progress }}%"></div>
+                    </div>
+                </div>
+
+                @if($project->deadline)
+                <div class="d-flex align-items-center gap-1 mt-2">
+                    <i class="ti ti-calendar-due text-muted fs-14"></i>
+                    <small class="{{ $isOverdue ? 'text-danger fw-semibold' : 'text-muted' }}">
+                        Due {{ $project->deadline->format('d M Y') }}
+                        @if($isOverdue) <span class="badge bg-danger-subtle text-danger ms-1">Overdue</span> @endif
+                    </small>
+                </div>
+                @endif
+            </div>
+            <div class="card-footer bg-transparent pt-0 pb-2 px-3">
+                <a href="{{ route('projects.show', $project) }}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="ti ti-eye me-1"></i>View Project
+                </a>
+            </div>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+
+{{-- Team Lead: Personal Activity --}}
 <div class="row g-3">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Recent Activity</h5>
+                <h5 class="card-title mb-0">My Recent Activity</h5>
             </div>
             <div class="card-body p-0">
                 @if($recentActivity->isEmpty())
-                    <p class="text-muted text-center py-4 px-3">No activity yet.</p>
+                    <p class="text-muted text-center py-4 px-3">No activity recorded yet.</p>
                 @else
                     <ul class="list-group list-group-flush">
                         @foreach($recentActivity as $log)
@@ -221,10 +465,7 @@
                                 </div>
                                 <div class="flex-grow-1 overflow-hidden">
                                     <p class="mb-0 small fw-medium text-truncate">{{ $log->description }}</p>
-                                    <small class="text-muted">
-                                        {{ $log->causer?->name ?? 'System' }}
-                                        &middot; {{ $log->created_at->diffForHumans() }}
-                                    </small>
+                                    <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
                                 </div>
                             </div>
                         </li>
